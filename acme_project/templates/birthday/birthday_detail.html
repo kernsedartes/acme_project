@@ -1,18 +1,78 @@
 {% extends "base.html" %}
+<!-- Подгружаем теги для библиотеки django_bootstrap -->
+{% load django_bootstrap5 %}
 
 {% block content %}
   ID записи: {{ object.id }}
   <hr>
   {% if birthday.image %}
     <div>
-      <!-- Картинку сделаем побольше, чем на странице list/: высотой 200px -->
       <img src="{{ birthday.image.url }}" height="200">
     </div>
   {% endif %}
-   <h2>Привет, {{ object.first_name }} {{ object.last_name }}</h2>      
+  <h2>Привет, {{ object.first_name }} {{ object.last_name }}</h2>      
   {% if birthday_countdown == 0 %}
     <p>С днём рождения!</p>
   {% else %}
     <p>Осталось дней до дня рождения: {{ birthday_countdown }}!</p>
   {% endif %}
+  <div>
+    <h3>Поздравления:</h3>
+    <!-- Если пользователь залогинен, отображаем форму -->
+    {% if user.is_authenticated %}
+      <!-- Указываем, на какой адрес нужно отправить POST-запрос -->
+      <form action="{% url 'birthday:add_comment' object.pk %}" method="post" class="col-3">
+        {% csrf_token %}
+        {% bootstrap_form form %}
+        {% bootstrap_button button_type="submit" content="Отправить поздравление" %}
+      </form>
+    {% endif %}
+    <!-- В цикле перебираем и выводим поздравления -->
+    {% for congratulation in congratulations %}
+      <hr>
+      <p>
+        {{ congratulation.author.username }}
+        поздравил {{ congratulation.created_at|date:"d M Y H:i" }}
+      </p>
+      <p><b>{{ congratulation.text }}</b></p>
+    {% endfor %}
+  </div>
 {% endblock content %} 
+
+
+
+
+
+
+
+
+
+
+{% comment %} from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
+from django.views.generic import CreateView
+
+from .forms import CongratulationForm
+from .models import Birthday, Congratulation
+
+
+class CongratulationCreateView(LoginRequiredMixin, CreateView):
+    birthday = None
+    model = Congratulation
+    form_class = CongratulationForm
+
+    # Переопределяем dispatch()
+    def dispatch(self, request, *args, **kwargs):
+        self.birthday = get_object_or_404(Birthday, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    # Переопределяем form_valid()
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        form.instance.birthday = self.birthday
+        return super().form_valid(form)
+
+    # Переопределяем get_success_url()
+    def get_success_url(self):
+        return reverse('birthday:detail', kwargs={'pk': self.birthday.pk})  {% endcomment %}
